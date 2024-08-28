@@ -1,0 +1,3 @@
+[submodule "russimp-sys"]
+	path = russimp-sys
+	url = git@github.com:fyouringnai/russimp-sys.git

@@ -17,7 +17,7 @@ name = "russimp"
 path = "src/lib.rs"
 
 [dependencies]
-russimp-sys = "2.0.1"
+russimp-sys = {path = "russimp-sys"}
 num-derive = "0.4"
 num-traits = "0.2.15"
 num_enum = "0.6.1"
