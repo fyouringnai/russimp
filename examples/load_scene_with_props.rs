@@ -3,11 +3,13 @@ use russimp::property::Property;
 use russimp::scene::PostProcess;
 use russimp::sys::AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS;
 use russimp::{property::PropertyStore, scene::Scene};
+use std::sync::{Arc, Mutex};
 
-fn traverse_nodes(node: &Node, indent: String) {
+fn traverse_nodes(node: &Arc<Mutex<Node>>, indent: String) {
+    let node = node.lock().unwrap();
     println!("{}{}", indent, node.name);
-    for child in node.children.borrow().iter() {
-        traverse_nodes(&*child, format!("  {}", indent));
+    for child in node.children.iter() {
+        traverse_nodes(&child, format!("  {}", indent));
     }
 }
 
@@ -41,6 +43,6 @@ fn main() {
     .unwrap();
 
     if let Some(root) = &scene.root {
-        traverse_nodes(&*root, String::from(""));
+        traverse_nodes(&root, String::from(""));
     }
 }

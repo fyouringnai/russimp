@@ -1,7 +1,7 @@
-use std::ops::{BitAnd, BitOr};
-
 use derivative::Derivative;
 use num_traits::ToPrimitive;
+use std::ops::{BitAnd, BitOr};
+use std::sync::Arc;
 
 use crate::{bone::Bone, face::Face, sys::*, *};
 
@@ -16,10 +16,10 @@ pub struct Mesh {
     pub bitangents: Vec<Vector3D>,
     pub uv_components: Vec<u32>,
     pub primitive_types: u32,
-    pub bones: Vec<Bone>,
+    pub bones: Vec<Arc<Bone>>,
     pub material_index: u32,
     pub method: u32,
-    pub anim_meshes: Vec<AnimMesh>,
+    pub anim_meshes: Vec<Arc<AnimMesh>>,
     pub faces: Vec<Face>,
     pub colors: Vec<Option<Vec<Color4D>>>,
     pub aabb: AABB,

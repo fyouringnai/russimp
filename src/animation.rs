@@ -1,5 +1,6 @@
 use crate::{sys::*, *};
 use derivative::Derivative;
+use std::sync::Arc;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -151,10 +152,10 @@ impl From<&aiMeshKey> for MeshKey {
 #[derivative(Debug)]
 pub struct Animation {
     pub name: String,
-    pub channels: Vec<NodeAnim>,
+    pub channels: Vec<Arc<NodeAnim>>,
     pub duration: f64,
-    pub morph_mesh_channels: Vec<MeshMorphAnim>,
-    pub mesh_channels: Vec<MeshAnim>,
+    pub morph_mesh_channels: Vec<Arc<MeshMorphAnim>>,
+    pub mesh_channels: Vec<Arc<MeshAnim>>,
     pub ticks_per_second: f64,
 }
 

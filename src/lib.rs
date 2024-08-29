@@ -211,6 +211,7 @@ impl From<IntoStringError> for RussimpError {
 pub type Russult<T> = Result<T, RussimpError>;
 
 mod utils {
+    use std::sync::Arc;
     use std::{os::raw::c_uint, ptr::slice_from_raw_parts};
 
     pub(crate) fn get_base_type_vec_from_raw<'a, TRaw: 'a>(
@@ -273,7 +274,7 @@ mod utils {
     pub(crate) fn get_vec_from_raw<'a, TComponent: From<&'a TRaw>, TRaw: 'a>(
         raw_source: *mut *mut TRaw,
         num_raw_items: c_uint,
-    ) -> Vec<TComponent> {
+    ) -> Vec<Arc<TComponent>> {
         let slice = slice_from_raw_parts(raw_source, num_raw_items as usize);
         if slice.is_null() {
             return vec![];
@@ -281,7 +282,7 @@ mod utils {
 
         let raw = unsafe { slice.as_ref() }.unwrap();
         raw.iter()
-            .map(|x| (unsafe { x.as_ref() }.unwrap()).into())
+            .map(|x| Arc::new(unsafe { x.as_ref() }.unwrap().into()))
             .collect()
     }
 

@@ -1,3 +1,6 @@
+use std::ffi::{CStr, CString};
+use std::sync::{Arc, Mutex};
+
 use crate::material::generate_materials;
 use crate::{
     animation::Animation,
@@ -11,10 +14,6 @@ use crate::{
     sys::*,
     *,
 };
-use std::{
-    ffi::{CStr, CString},
-    rc::Rc,
-};
 
 use self::property::PropertyStore;
 
@@ -22,12 +21,12 @@ use self::property::PropertyStore;
 #[derivative(Debug)]
 pub struct Scene {
     pub materials: Vec<Material>,
-    pub meshes: Vec<Mesh>,
+    pub meshes: Vec<Arc<Mesh>>,
     pub metadata: Option<MetaData>,
-    pub animations: Vec<Animation>,
-    pub cameras: Vec<Camera>,
-    pub lights: Vec<Light>,
-    pub root: Option<Rc<Node>>,
+    pub animations: Vec<Arc<Animation>>,
+    pub cameras: Vec<Arc<Camera>>,
+    pub lights: Vec<Arc<Light>>,
+    pub root: Option<Arc<Mutex<Node>>>,
     pub flags: u32,
 }
 
@@ -623,11 +622,15 @@ impl Scene {
     }
 }
 
+unsafe impl Send for Scene {}
+unsafe impl Sync for Scene {}
+
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use crate::scene::{PostProcess, Scene};
     use crate::utils;
-    use std::rc::Rc;
 
     #[test]
     fn importing_invalid_file_returns_error() {
@@ -725,11 +728,11 @@ mod test {
         .unwrap();
 
         let root = scene.root.as_ref().unwrap().clone();
-        assert_eq!(Rc::strong_count(&root), 2);
+        assert_eq!(Arc::strong_count(&root), 2);
 
         drop(scene);
 
         // Strong refcount must be 1 here, otherwise we leak memory
-        assert_eq!(Rc::strong_count(&root), 1);
+        assert_eq!(Arc::strong_count(&root), 1);
     }
 }

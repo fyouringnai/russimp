@@ -1,48 +1,48 @@
-use crate::{metadata::MetaData, sys::aiNode, *};
+use std::sync::{Arc, Mutex};
+
 use derivative::Derivative;
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
+
+use crate::{metadata::MetaData, sys::aiNode, *};
 
 #[derive(Default, Derivative)]
 #[derivative(Debug)]
 pub struct Node {
     pub name: String,
-    pub children: RefCell<Vec<Rc<Node>>>,
+    pub children: Vec<Arc<Mutex<Node>>>,
     pub meshes: Vec<u32>,
     pub metadata: Option<MetaData>,
     pub transformation: Matrix4x4,
     #[derivative(Debug = "ignore")]
-    pub parent: Weak<Node>,
+    pub parent: Option<Arc<Mutex<Node>>>,
 }
 
 impl Node {
-    pub(crate) fn new(node: &aiNode) -> Rc<Node> {
+    pub(crate) fn new(node: &aiNode) -> Arc<Mutex<Node>> {
         Self::allocate(node, None)
     }
 
-    fn allocate(node: &aiNode, parent: Option<&Rc<Node>>) -> Rc<Node> {
+    fn allocate(node: &aiNode, parent: Option<&Arc<Mutex<Node>>>) -> Arc<Mutex<Node>> {
         // current simple node
-        let res_node = Rc::new(Self::create_simple_node(node, parent));
+        let res_node = Arc::new(Mutex::new(Self::create_simple_node(node, parent)));
+        let res_node_clone = res_node.clone();
+        let mut res_node = res_node.lock().unwrap();
 
-        *res_node.children.borrow_mut() =
-            utils::get_base_type_vec_from_raw(node.mChildren, node.mNumChildren)
-                .into_iter()
-                .map(|child| Self::allocate(child, Some(&res_node)))
-                .collect::<Vec<_>>();
+        res_node.children = utils::get_base_type_vec_from_raw(node.mChildren, node.mNumChildren)
+            .iter()
+            .map(|child| Self::allocate(child, Some(&res_node_clone)))
+            .collect::<Vec<_>>();
 
-        res_node
+        res_node_clone
     }
 
-    fn create_simple_node(node: &aiNode, parent: Option<&Rc<Node>>) -> Node {
+    fn create_simple_node(node: &aiNode, parent: Option<&Arc<Mutex<Node>>>) -> Node {
         Node {
             name: node.mName.into(),
-            children: RefCell::new(Vec::new()),
+            children: Vec::new(),
             meshes: utils::get_raw_vec(node.mMeshes, node.mNumMeshes),
             metadata: utils::get_raw(node.mMetaData),
             transformation: (&node.mTransformation).into(),
-            parent: parent.map(Rc::downgrade).unwrap_or_else(Weak::new),
+            parent: parent.map(|p| p.clone()),
         }
     }
 }
@@ -69,15 +69,16 @@ mod test {
         .unwrap();
 
         let root = scene.root.as_ref().unwrap();
-        let children = root.children.borrow();
+        let root = root.lock().unwrap();
+        let children = &root.children;
 
         assert_eq!("<BlenderRoot>".to_string(), root.name);
         assert_eq!(3, children.len());
 
-        let first_son = &children[0];
+        let first_son = &children[0].lock().unwrap();
         assert_eq!("Cube".to_string(), first_son.name);
 
-        let second_son = &children[1];
+        let second_son = &children[1].lock().unwrap();
         assert_eq!("Lamp".to_string(), second_son.name);
 
         assert_eq!(0, root.meshes.len());
@@ -108,10 +109,11 @@ mod test {
         .unwrap();
 
         let root = scene.root.as_ref().unwrap();
-        let children = root.children.borrow();
+        let root = root.lock().unwrap();
+        let children = &root.children;
 
-        let first_son = &children[0];
-        let dad = first_son.parent.upgrade().unwrap();
+        let first_son = &children[0].lock().unwrap();
+        let dad = first_son.parent.as_ref().unwrap().lock().unwrap();
 
         assert_eq!(root.name, dad.name);
     }
